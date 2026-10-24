@@ -1,0 +1,36 @@
+name: Build desktop apps
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Unzip project
+        shell: bash
+        run: python -m zipfile -e "$(ls *.zip | head -n 1)" project
+      - name: Install
+        working-directory: project
+        run: npm install
+      - name: Build installers
+        working-directory: project
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FlatForm-${{ matrix.os }}
+          path: |
+            project/dist/*.exe
+            project/dist/*.dmg
+          if-no-files-found: error
